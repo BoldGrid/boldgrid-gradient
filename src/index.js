@@ -6,6 +6,7 @@ export * from './hooks/useColorPicker'
 
 function ColorPicker({
   value = 'rgba(175, 51, 242, 1)',
+  gradientObj = null,
   onChange = () => {},
   hideControls = false,
   hideInputs = false,
@@ -20,6 +21,7 @@ function ColorPicker({
   hideColorTypeBtns = false,
   width = 294,
   height = 294,
+  target = null,
   style = {},
   className,
 }) {
@@ -35,8 +37,10 @@ function ColorPicker({
       <PickerContextWrapper
         bounds={bounds}
         value={value}
+        gradientObj={gradientObj}
         onChange={onChange}
         squareSize={width}
+        target={target}
         squareHeight={height}
         hideOpacity={hideOpacity}
       >
@@ -48,6 +52,7 @@ function ColorPicker({
           hideHue={hideHue}
           presets={presets}
           hideEyeDrop={hideEyeDrop}
+          target={target}
           hideAdvancedSliders={hideAdvancedSliders}
           hideColorGuide={hideColorGuide}
           hideInputType={hideInputType}

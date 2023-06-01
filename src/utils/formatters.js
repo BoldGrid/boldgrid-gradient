@@ -11,15 +11,41 @@ export const high = (color) => {
   return color.value.toUpperCase()
 }
 
-export const getColors = (value) => {
-  let isGradient = value?.includes('gradient')
+export const sanitizeColorVars = (value, target) => {
+  var failures = 0;
+  const targetComputedStyle = getComputedStyle( target.get( 0 ) );
+  const matches             = value.match( /(var\(--[\w|\-|\d]+\))/ig );
+  const sanitizedValue      = value.replace( /(var\(--[\w|\-|\d]+\))/ig, ( match ) => {
+    const variable      = match.replace( /var\(/ig, '' ).replace( /\)/ig, '' );
+    const variableValue = targetComputedStyle.getPropertyValue( variable );
+    if ( ! variableValue ) {
+      failures++;
+    }
+    return variableValue;
+  } );
+
+  return failures ? config.defaultGradient : sanitizedValue;
+}
+
+export const getColors = (value, target = null, gradientObj ) => {
+  let isGradient    = value?.includes('gradient')
+  let usesColorVars = value?.includes( 'var(' )
+
+  if ( isGradient && usesColorVars && ! gradientObj ) {
+    value = sanitizeColorVars( value, target );
+  }
+
+  if ( isGradient && gradientObj && gradientObj.length > 0 ) {
+    return gradientObj;
+  }
+
   if (isGradient) {
     let isConic = value?.includes('conic')
     let safeValue = !isConic && validate(value) ? value : defaultGradient
     if (isConic) {
       console.log('Sorry we cant handle conic gradients yet')
     }
-    var obj = gradientParser(safeValue)
+    var obj = gradientParser(safeValue, target )
     return obj?.colorStops
   } else {
     let safeValue = validate(value) ? value : defaultColor

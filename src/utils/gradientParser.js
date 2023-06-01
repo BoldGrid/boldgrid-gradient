@@ -1,8 +1,9 @@
 import { high, low } from './formatters'
 import { isUpperCase } from './utils'
+
 var tinycolor = require('tinycolor2')
 
-export const gradientParser = (input = '') => {
+export const gradientParser = (input = '', target = null ) => {
   var tokens = {
     linearGradient: /^(-(webkit|o|ms|moz)-)?(linear-gradient)/i,
     repeatingLinearGradient:
@@ -23,6 +24,7 @@ export const gradientParser = (input = '') => {
     endCall: /^\)/,
     comma: /^,/,
     hexColor: /^#([0-9a-fA-F]+)/,
+    variableColor: /^(var\(--[\w|\-|\d]+\))/i,
     literalColor: /^([a-zA-Z]+)/,
     rgbColor: /^rgb/i,
     spacedRgbColor: /^(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})\s+\/\s+([0-1](\.\d+)?)/,
@@ -280,6 +282,7 @@ export const gradientParser = (input = '') => {
 
   function matchColor() {
     return (
+      matchVariableColor() ||
       matchHexColor() ||
       matchHSLColor() ||
       matchRGBAColor() ||
@@ -287,6 +290,10 @@ export const gradientParser = (input = '') => {
       matchLiteralColor() ||
       matchHSVColor()
     )
+  }
+
+  function matchVariableColor() {
+    return match('variable', tokens.variableColor, 1)
   }
 
   function matchLiteralColor() {
@@ -380,9 +387,20 @@ export const gradientParser = (input = '') => {
   function match(type, pattern, captureIndex) {
     var captures = scan(pattern)
     if (captures) {
+      if ( 'variable' === type ) {
+        let originalValue = captures[captureIndex];
+        let valueVariable = originalValue.replace( /^var\((--[\w|\-|\d]+)\)/i, '$1' ).toLowerCase();
+
+        return {
+          type: type,
+          value: getComputedStyle( target.get(0) ).getPropertyValue( valueVariable ),
+          variable: originalValue
+        }
+      }
+
       return {
         type: type,
-        value: captures[captureIndex],
+        value: captures[captureIndex]
       }
     }
   }

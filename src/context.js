@@ -20,6 +20,9 @@ export default function PickerContextWrapper({
   children,
   bounds,
   value,
+  gradientObj,
+  rawValue,
+  target,
   onChange,
   squareSize,
   squareHeight,
@@ -31,7 +34,7 @@ export default function PickerContextWrapper({
   const degrees = getDegrees(value)
   const degreeStr =
     gradientType === 'linear-gradient' ? `${degrees}deg` : 'circle'
-  const colors = getColors(value)
+  const colors = getColors(value, target, gradientObj )
   const indexedColors = colors?.map((c, i) => ({ ...c, index: i }))
   const currentColorObj =
     indexedColors?.filter((c) => isUpperCase(c.value))[0] || indexedColors[0]
@@ -62,7 +65,7 @@ export default function PickerContextWrapper({
         setPreviousColors([value, ...previousColors?.slice(0, 8)])
       }
 
-      onChange(newValue)
+      onChange( { newValue, gradientObj, degreeStr, gradientType } )
     }
   }
 
@@ -73,17 +76,81 @@ export default function PickerContextWrapper({
 
   const createGradientStr = (newColors) => {
     let sorted = newColors.sort((a, b) => a.left - b.left)
-    let colorString = sorted?.map((cc) => `${cc?.value} ${cc.left}%`)
+    let colorString = sorted?.map( createColorStr );
     internalOnChange(`${gradientType}(${degreeStr}, ${colorString.join(', ')})`)
   }
 
-  const handleGradient = (newColor, left = currentLeft) => {
+  const createColorStr = (colorObj) => {
+    let colorStr = `${colorObj?.value} ${colorObj.left}%`
+    if ( colorObj?.variable ) {
+      let colorValue = colorObj.value.toLowerCase();
+      colorStr = `var(--${colorObj.variable}) ${colorObj.left}%`
+
+      let variableComputedColor = getComputedStyle( target.get( 0 ) ).getPropertyValue( '--' + colorObj.variable );
+
+      if( isTranslucentVariable( colorValue, variableComputedColor ) ) {
+        let opacity = getOpacityFromRgba( colorValue );
+        colorStr = `rgba(var(--${colorObj.variable}-raw), ${opacity}) ${colorObj.left}%`
+      }
+    }
+
+    return colorStr;
+  }
+
+  const getOpacityFromRgba = ( rgba ) => {
+    let opacity = rgba.split( ',' ).pop();
+    opacity = opacity.replace( ')', '' );
+    opacity = opacity.replace( ' ', '' );
+    return opacity;
+  }
+
+  /**
+   * Converts both values from rba to rgb
+   * and compares to see if they are the same.
+   * 
+   * @param {string} colorValue 
+   * @param {string} variableComputedColor 
+   * 
+   * @returns {boolean} isTranslucentVariable
+   */
+  const isTranslucentVariable = ( colorValue, variableComputedColor ) => {
+    if ( colorValue === variableComputedColor ) {
+      return false;
+    }
+    let colorValueRGB = tinycolor( colorValue ).setAlpha( 1 ).toRgbString();
+    let variableComputedColorRGB = tinycolor( variableComputedColor ).setAlpha( 1 ).toRgbString();
+    let isTranslucentVariable = colorValueRGB === variableComputedColorRGB;
+
+    return isTranslucentVariable;
+  }
+
+  const handleGradient = (newColor, left = currentLeft, presetId = null ) => {
     let remaining = colors?.filter((c) => !isUpperCase(c.value))
+    let newColorsValue = { value: newColor.toUpperCase(), left: left };
+    let isValueVariable = newColor.toLowerCase().includes( 'var(' );
+    if ( presetId ) {
+      let value = isValueVariable 
+        ? getComputedStyle( target.get( 0 ) ).getPropertyValue( '--' + presetId )
+        : newColor;
+      newColorsValue = { value: value.toUpperCase(), left: left, variable: presetId }
+    } 
+
     let newColors = [
-      { value: newColor.toUpperCase(), left: left },
+      newColorsValue,
       ...remaining,
     ]
+  
+    gradientObj = newColors;
     createGradientStr(newColors)
+  }
+
+  const handlePresetChange = ( presetId, presetColor ) => {
+    let newColor = presetColor
+    if (isGradient) {
+      handleGradient(newColor, currentLeft, presetId )
+    } else {
+      internalOnChange(newColor)
+    }
   }
 
   const handleChange = (newColor) => {
@@ -97,7 +164,12 @@ export default function PickerContextWrapper({
   const handleOpacity = (e) => {
     let newO = getHandleValue(e) / 100
     let newColor = `rgba(${r}, ${g}, ${b}, ${newO})`
-    handleChange(newColor)
+    if ( isGradient && currentColorObj?.variable ) {
+      handleGradient(newColor, currentLeft, currentColorObj?.variable )
+    } else {
+      handleChange(newColor)
+    }
+    
   }
 
   const handleHue = (e) => {
@@ -149,16 +221,6 @@ export default function PickerContextWrapper({
     }
   }
 
-  // const handleKeyboard = (e) => {
-  //   if (inFocus !== null && inFocus !== 'input') {
-  //     if (e.keyCode === 90 && (e.ctrlKey || e.metaKey)) {
-  //       if (isGradient && previousGraidents?.length > undoLog) {
-  //         onChange(previousGraidents[undoLog]);
-  //         setUndoLog(undoLog + 1);
-  //       }
-  //     }
-  //   }
-  // }
 
   useEffect(() => {
     window.addEventListener('click', handleClickFocus)
@@ -219,8 +281,11 @@ export default function PickerContextWrapper({
     setInputType,
     gradientType,
     handleChange,
+    handlePresetChange,
     currentColor,
+    target,
     selectedColor,
+    gradientObj,
     handleOpacity,
     setInternalHue,
     previousColors,

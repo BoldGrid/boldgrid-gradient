@@ -3,6 +3,7 @@ import { getGradientType, getDegrees, isUpperCase } from '../utils/utils'
 import { low, high, getColors, formatInputValues } from '../utils/formatters'
 import { rgb2cmyk } from '../utils/converters'
 import { config } from '../constants'
+import { usePicker } from '../context'
 
 const { defaultColor, defaultGradient } = config
 var tc = require('tinycolor2')
@@ -19,7 +20,8 @@ export const useColorPicker = (value, onChange) => {
   const degrees = getDegrees(value)
   const degreeStr =
     gradientType === 'linear-gradient' ? `${degrees}deg` : 'circle'
-  const colors = getColors(value)
+  const { target } = usePicker()
+  const colors = getColors(value, target )
   const indexedColors = colors?.map((c, i) => ({ ...c, index: i }))
   const currentColorObj =
     indexedColors?.filter((c) => isUpperCase(c.value))[0] || indexedColors[0]

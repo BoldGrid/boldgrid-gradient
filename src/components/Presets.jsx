@@ -2,16 +2,8 @@ import React from 'react'
 import { usePicker } from '../context'
 
 const Presets = ({ presets = [] }) => {
-  const { value, handleChange, squareSize } = usePicker()
-
-  const getPresets = () => {
-    if (presets?.length > 0) {
-      return presets?.slice(0, 18)
-    } else {
-      return fakePresets
-    }
-  }
-
+  const { value, handlePresetChange, squareSize } = usePicker()
+  
   return (
     <div
       style={{
@@ -37,44 +29,25 @@ const Presets = ({ presets = [] }) => {
           justifyContent: 'space-between',
         }}
       >
-        {getPresets().map((p, key) => (
-          <div
+        {
+          Object.keys( presets ).map( ( key, index ) => (
+            <div
             key={key}
+            data-preset={key}
             style={{
               height: 23,
               width: '10.2%',
               borderRadius: 4,
-              background: p,
+              background: presets[key],
               marginBottom: 2,
-              border: p === 'rgba(255,255,255, 1)' ? '1px solid #96959c' : '',
+              border: '1px solid #96959c',
             }}
-            onClick={() => handleChange(p)}
+            onClick={() => handlePresetChange(key, presets[key])}
           />
-        ))}
+          ))}
       </div>
     </div>
   )
 }
 
 export default Presets
-
-const fakePresets = [
-  'rgba(0,0,0,1)',
-  'rgba(128,128,128, 1)',
-  'rgba(192,192,192, 1)',
-  'rgba(255,255,255, 1)',
-  'rgba(0,0,128,1)',
-  'rgba(0,0,255,1)',
-  'rgba(0,255,255, 1)',
-  'rgba(0,128,0,1)',
-  'rgba(128,128,0, 1)',
-  'rgba(0,128,128,1)',
-  'rgba(0,255,0, 1)',
-  'rgba(128,0,0, 1)',
-  'rgba(128,0,128, 1)',
-  'rgba(175, 51, 242, 1)',
-  'rgba(255,0,255, 1)',
-  'rgba(255,0,0, 1)',
-  'rgba(240, 103, 46, 1)',
-  'rgba(255,255,0, 1)',
-]
