@@ -77,21 +77,31 @@ export default function PickerContextWrapper({
   const createGradientStr = (newColors) => {
     let sorted = newColors.sort((a, b) => a.left - b.left)
     let colorString = sorted?.map( createColorStr );
+    gradientObj = newColors;
     internalOnChange(`${gradientType}(${degreeStr}, ${colorString.join(', ')})`)
   }
 
   const createColorStr = (colorObj) => {
     let colorStr = `${colorObj?.value} ${colorObj.left}%`
     if ( colorObj?.variable ) {
-      let colorValue = colorObj.value.toLowerCase();
+      let colorValue = colorObj.value;
       colorStr = `var(--${colorObj.variable}) ${colorObj.left}%`
+
+      colorStr = isUpperCase( colorValue ) ? colorStr.toUpperCase() : colorStr.toLowerCase();
 
       let variableComputedColor = getComputedStyle( target.get( 0 ) ).getPropertyValue( '--' + colorObj.variable );
 
-      if( isTranslucentVariable( colorValue, variableComputedColor ) ) {
-        let opacity = getOpacityFromRgba( colorValue );
+      if( ! isTranslucentVariable( colorObj.value, variableComputedColor ) ) {
+        return colorStr;
+      }
+
+      let opacity = getOpacityFromRgba( colorValue );
+      if ( isUpperCase( colorValue ) ) {
+        colorStr = `RGBA(VAR(--${colorObj.variable}-RAW), ${opacity}) ${colorObj.left}%`
+      } else {
         colorStr = `rgba(var(--${colorObj.variable}-raw), ${opacity}) ${colorObj.left}%`
       }
+
     }
 
     return colorStr;
@@ -114,6 +124,8 @@ export default function PickerContextWrapper({
    * @returns {boolean} isTranslucentVariable
    */
   const isTranslucentVariable = ( colorValue, variableComputedColor ) => {
+    colorValue = colorValue.toLowerCase();
+    variableComputedColor = variableComputedColor.toLowerCase();
     if ( colorValue === variableComputedColor ) {
       return false;
     }
@@ -128,6 +140,7 @@ export default function PickerContextWrapper({
     let remaining = colors?.filter((c) => !isUpperCase(c.value))
     let newColorsValue = { value: newColor.toUpperCase(), left: left };
     let isValueVariable = newColor.toLowerCase().includes( 'var(' );
+
     if ( presetId ) {
       let value = isValueVariable 
         ? getComputedStyle( target.get( 0 ) ).getPropertyValue( '--' + presetId )
@@ -139,8 +152,6 @@ export default function PickerContextWrapper({
       newColorsValue,
       ...remaining,
     ]
-  
-    gradientObj = newColors;
     createGradientStr(newColors)
   }
 

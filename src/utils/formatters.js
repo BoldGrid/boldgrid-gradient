@@ -14,7 +14,6 @@ export const high = (color) => {
 export const sanitizeColorVars = (value, target) => {
   var failures = 0;
   const targetComputedStyle = getComputedStyle( target.get( 0 ) );
-  const matches             = value.match( /(var\(--[\w|\-|\d]+\))/ig );
   const sanitizedValue      = value.replace( /(var\(--[\w|\-|\d]+\))/ig, ( match ) => {
     const variable      = match.replace( /var\(/ig, '' ).replace( /\)/ig, '' );
     const variableValue = targetComputedStyle.getPropertyValue( variable );
